@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Birthday Surprise Game</title>
+<style>
+  :root{
+    --bg: #ffd6ea; /* soft pink */
+    --accent: #e30b2b; /* red border & accents */
+    --text: #ffffff; /* white text */
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    overflow:hidden;
+  }
+
+  /* Page container with red border */
+  #stage{
+    box-sizing:border-box;
+    width:100%;
+    height:100%;
+    padding:24px;
+    border:8px solid var(--accent);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+  }
+
+  /* Main card center */
+  #card{
+    width:720px;
+    max-width:96%;
+    min-height:480px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    border-radius:16px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    padding:28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    text-align:center;
+  }
+
+  h1{ margin:0 0 8px 0; font-size:28px; color:var(--text); }
+  p{ margin:6px 0 18px 0; color:var(--text); opacity:0.95; }
+
+  /* Gift */
+  #giftBox{
+    font-size:120px;
+    cursor:pointer;
+    user-select:none;
+    transform-origin:center;
+    transition: transform 220ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #giftBox:active{ transform: scale(0.95); }
+
+  #countText{
+    font-size:22px;
+    margin-top:12px;
+    color:var(--text);
+  }
+
+  /* Balloons - base */
+  .balloon{
+    position:fixed;
+    bottom:-120px;
+    width:56px;
+    height:74px;
+    border-radius:50% 50% 46% 46%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform-origin:center;
+    box-shadow: inset -6px -8px 18px rgba(0,0,0,0.12);
+    z-index:20;
+    pointer-events:none;
+  }
+  /* the glossy shine (pseudo) */
+  .balloon::after{
+    content:'';
+    position:absolute;
+    top:8%;
+    left:18%;
+    width:24%;
+    height:42%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.85), rgba(255,255,255,0.12) 40%, transparent 60%);
+    border-radius:50%;
+    transform:rotate(-18deg);
+    opacity:0.95;
+    pointer-events:none;
+  }
+  .string{
+    position:absolute;
+    bottom:-18px;
+    left:50%;
+    width:2px;
+    height:40px;
+    background:rgba(0,0,0,0.06);
+    transform:translateX(-50%);
+    border-radius:2px;
+  }
+
+  /* balloon rise animation with slight sway */
+  @keyframes riseSway {
+    0%{ transform: translateY(0) rotate(-6deg); opacity:0;}
+    20%{ opacity:1; }
+    50%{ transform: translateY(-44vh) rotate(6deg); }
+    100%{ transform: translateY(-120vh) rotate(-6deg); opacity:0.95;}
+  }
+
+  /* Cake area */
+  #cake{
+    display:none;
+    margin-top:14px;
+    animation: appear 600ms ease both;
+  }
+  @keyframes appear{ from{opacity:0; transform:scale(0.86)} to{opacity:1; transform:scale(1)} }
+
+  .candles{ display:flex; gap:8px; justify-content:center; align-items:flex-end; margin-top:12px; }
+  .candle{ width:12px; height:52px; background: #ffea7a; border-radius:4px; position:relative; box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
+  .flame{
+    position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+    width:16px; height:16px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #fff1b6, #ff9900 60%, #e63a00);
+    animation: flicker 160ms infinite alternate;
+    box-shadow: 0 0 12px rgba(255,150,40,0.6);
+  }
+  @keyframes flicker{ from{ transform: translateX(-50%) scale(0.96) } to{ transform: translateX(-50%) scale(1.12) } }
+
+  /* Happy Birthday big text */
+  #hbText{
+    display:none;
+    font-size:46px;
+    font-weight:700;
+    margin-top:18px;
+    color:var(--text);
+    text-shadow: 0 6px 18px rgba(227,11,43,0.14);
+  }
+
+  /* Flowers (falling) */
+  .flower{
+    position:fixed;
+    top:-40px;
+    width:24px;
+    height:24px;
+    font-size:20px;
+    z-index:30;
+    pointer-events:none;
+    transform-origin:center;
+    animation: fallFlower linear forwards;
+  }
+  @keyframes fallFlower{
+    to{ transform: translateY(120vh) rotate(540deg); opacity:0.95; }
+  }
+
+  /* Fireworks shells */
+  .firework{
+    position:absolute;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:transparent;
+    pointer-events:none;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
+  }
+
+  /* Buttons fixed bottom center */
+  .bottomButtons{
+    position:fixed;
+    left:50%;
+    transform:translateX(-50%);
+    bottom:24px;
+    display:flex;
+    gap:10px;
+    z-index:40;
+  }
+  .btn{
+    background:var(--accent);
+    color:var(--text);
+    border:3px solid white;
+    padding:12px 22px;
+    font-weight:700;
+    border-radius:999px;
+    cursor:pointer;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    user-select:none;
+  }
+  .btn:active{ transform:translateY(2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+
+  /* final message */
+  #message{
+    display:none;
+    margin-top:16px;
+    font-size:20px;
+    color:var(--text);
+    max-width:86%;
+    line-height:1.3;
+    letter-spacing:0.2px;
+  }
+
+  /* small responsiveness */
+  @media (max-width:520px){
+    .balloon{ width:46px; height:60px; }
+    .candle{ height:44px; }
+    #hbText{ font-size:34px; }
+  }
+</style>
+</head>
+<body>
+  <!-- Background audio: replace src with your own file name or hosted link -->
+  <audio id="bgMusic" loop>
+  <source src="https://drive.google.com/file/d/17zHR4_PsJuzshzVeLqewT_VSS3igvSx_/view?usp=drivesdk" type="audio/mp3">
+</audio>
+
+  <div id="stage">
+    <div id="card" aria-live="polite">
+      <h1>Surprise 🎁</h1>
+      <p id="subtitle">Tap the Start button below to begin the gift opening!</p>
+
+      <!-- Gift / Count area -->
+      <div id="giftArea">
+        <div id="giftBox" title="Gift box">🎁</div>
+        <div id="countText">Opening gifts: 9</div>
+      </div>
+
+      <!-- Cake (hidden until gifts finish) -->
+      <div id="cake" aria-hidden="true">
+        <div style="font-size:56px">🎂</div>
+        <div style="margin-top:6px; font-weight:700">Make a wish!</div>
+        <div class="candles" id="candles">
+          <div class="candle"><div class="flame"></div></div>
+          <div class="candle"><div class="flame"></div></div>
+          <div class="candle"><div class="flame"></div></div>
+          <div class="candle"><div class="flame"></div></div>
+          <div class="candle"><div class="flame"></div></div>
+        </div>
+      </div>
+
+      <div id="hbText">Happy Birthday Ameesha 🎉</div>
+      <div id="message">YOUR_MESSAGE_HERE</div>
+    </div>
+
+    <!-- Buttons at bottom center -->
+    <div class="bottomButtons">
+      <button id="startBtn" class="btn">Tap Here</button>
+      <button id="blowBtn" class="btn" style="display:none">Tap Here to Blow the Candles</button>
+    </div>
+  </div>
+
+<script>
+/* ====== Setup and state ====== */
+const startBtn = document.getElementById('startBtn');
+const blowBtn = document.getElementById('blowBtn');
+const giftBox = document.getElementById('giftBox');
+const countText = document.getElementById('countText');
+const cake = document.getElementById('cake');
+const hbText = document.getElementById('hbText');
+const message = document.getElementById('message');
+const candles = document.getElementById('candles');
+const subtitle = document.getElementById('subtitle');
+const bgMusic = document.getElementById('bgMusic');
+
+let count = 9;
+let autoTimer = null;
+let running = false;
+
+/* Play music on user interaction (some browsers block autoplay) */
+function playMusicSafe(){
+  if(bgMusic && bgMusic.paused){
+    bgMusic.play().catch(()=>{/* ignore autoplay block */});
+  }
+}
+
+/* ====== Balloon generation (enhanced red balloons) ====== */
+function spawnBalloon(isRedEnhanced=true){
+  const el = document.createElement('div');
+  el.className = 'balloon';
+  // position random X near center area (not fully edge)
+  const left = Math.random() * (window.innerWidth * 0.7) + (window.innerWidth*0.15);
+  el.style.left = left + 'px';
+  // size variations (bigger for red enhanced)
+  const size = isRedEnhanced ? (56 + Math.random()*26) : (42 + Math.random()*18);
+  el.style.width = size + 'px';
+  el.style.height = Math.round(size*1.28) + 'px';
+
+  // enhanced red gradient variations
+  const reds = [
+    'linear-gradient(180deg, #ff4a5a, #d60b21)',
+    'linear-gradient(180deg, #ff2a3c, #b8001f)',
+    'linear-gradient(180deg, #ff6b7e, #e30b2b)',
+    'linear-gradient(180deg, #ff7f8a, #c70a20)'
+  ];
+  // add other colored balloons too
+  const others = [
+    'linear-gradient(180deg,#ffd56a,#ffb84d)', // yellow
+    'linear-gradient(180deg,#70e1f5,#3aa7dd)', // blue
+    'linear-gradient(180deg,#b37ffb,#7a4ef2)', // purple
+    'linear-gradient(180deg,#a7ffaf,#4dd07a)'  // green
+  ];
+
+  const pick = Math.random() < 0.62 ? reds[Math.floor(Math.random()*reds.length)] : others[Math.floor(Math.random()*others.length)];
+  el.style.background = pick;
+  // glossy highlight via inline style addition (keeps shine)
+  el.style.boxShadow = 'inset -8px -10px 26px rgba(0,0,0,0.14), 0 6px 18px rgba(0,0,0,0.12)';
+  // animation duration random with slight sway
+  const dur = 3800 + Math.random()*2400;
+  el.style.animation = `riseSway ${dur}ms linear forwards`;
+  el.style.zIndex = 20 + Math.floor(Math.random()*10);
+
+  // string
+  const s = document.createElement('div');
+  s.className = 'string';
+  el.appendChild(s);
+
+  document.body.appendChild(el);
+  // remove after animation finishes
+  setTimeout(()=> el.remove(), dur + 300);
+}
+
+/* ====== Flower falling generator (replaces confetti/partypoppers) ====== */
+function spawnFlowers(countFlowers=36){
+  const flowerEmojis = ['🌸','🌺','🌼','🥀','💐'];
+  for(let i=0;i<countFlowers;i++){
+    const f = document.createElement('div');
+    f.className = 'flower';
+    f.style.left = (Math.random()*100) + 'vw';
+    f.style.fontSize = (14 + Math.random()*20) + 'px';
+    f.style.opacity = 0.95;
+    f.style.transform = `translateY(-10vh) rotate(${Math.random()*360}deg)`;
+    // random duration
+    const dur = 2800 + Math.random()*2400;
+    f.style.animationDuration = dur + 'ms';
+    f.style.animationDelay = (Math.random()*300) + 'ms';
+    f.textContent = flowerEmojis[Math.floor(Math.random()*flowerEmojis.length)];
+    document.body.appendChild(f);
+    // remove after done
+    setTimeout(()=> f.remove(), dur + 800);
+  }
+}
+
+/* ====== Fireworks simple implementation ====== */
+function spawnFirework(x, y){
+  // create a container
+  const cont = document.createElement('div');
+  cont.className = 'firework';
+  cont.style.left = (x - 6) + 'px';
+  cont.style.top = (y - 6) + 'px';
+  document.body.appendChild(cont);
+
+  // create many particles
+  const colors = ['#fff176','#ff8a80','#b388ff','#ff80ab','#80d8ff','#ffd180'];
+  const pieces = 18 + Math.floor(Math.random()*20);
+  for(let i=0;i<pieces;i++){
+    const p = document.createElement('div');
+    p.style.position = 'absolute';
+    p.style.width = '6px';
+    p.style.height = '6px';
+    p.style.borderRadius = '50%';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.left = '0px';
+    p.style.top = '0px';
+    p.style.opacity = '0.98';
+    p.style.transform = 'translate(0px,0px)';
+    p.style.transition = `transform ${600 + Math.random()*700}ms cubic-bezier(.08,.9,.38,1), opacity 900ms linear`;
+    cont.appendChild(p);
+
+    // launch after small timeout
+    setTimeout(()=>{
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 40 + Math.random()*120;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      p.style.transform = `translate(${dx}px,${dy}px)`;
+      p.style.opacity = '0';
+    }, Math.random()*80);
+  }
+
+  // remove container after animation
+  setTimeout(()=> cont.remove(), 1600);
+}
+
+/* random fireworks burst across the card area */
+function fireworksShow(){
+  const rect = document.getElementById('card').getBoundingClientRect();
+  const bursts = 6;
+  for(let i=0;i<bursts;i++){
+    setTimeout(()=>{
+      const x = rect.left + 30 + Math.random()*(rect.width-60);
+      const y = rect.top + 30 + Math.random()*(rect.height/2);
+      spawnFirework(x,y);
+    }, i*220 + Math.random()*220);
+  }
+}
+
+/* ====== Auto countdown opening logic (Option 1) ====== */
+function startAutoOpening(){
+  if(running) return;
+  running = true;
+  playMusicSafe();
+  startBtn.disabled = true;
+  startBtn.style.opacity = 0.7;
+  subtitle.textContent = 'Opening gifts...';
+
+  const interval = 700; // time between opens
+  autoTimer = setInterval(()=> {
+    // spawn multiple red-enhanced balloons for each open
+    for(let i=0;i<2;i++) spawnBalloon(true);
+    // also spawn one colored balloon sometimes
+    if(Math.random() > 0.65) spawnBalloon(false);
+
+    if(count > 1){
+      count--;
+      countText.textContent = 'Opening gifts: ' + count;
+      // quick bounce effect
+      giftBox.style.transform = 'scale(1.06)';
+      setTimeout(()=> giftBox.style.transform = 'scale(1)', 120);
+    } else {
+      // last: stop
+      clearInterval(autoTimer);
+      count = 29;
+      countText.textContent = '';
+      giftBox.style.display = 'none';
+      showCake();
+    }
+  }, interval);
+}
+
+/* show cake & show blow button */
+function showCake(){
+  cake.style.display = 'block';
+  cake.setAttribute('aria-hidden','false');
+  subtitle.textContent = 'Time to make a wish!';
+  // show blow button
+  blowBtn.style.display = 'inline-block';
+  // gentle fireworks and balloons as cake appears
+  for(let i=0;i<6;i++){
+    setTimeout(()=> spawnBalloon(Math.random() > 0.2), i*160);
+  }
+  setTimeout(()=> fireworksShow(), 600);
+}
+
+/* ====== Blow candles logic ====== */
+function blowCandlesSequence(){
+  playMusicSafe();
+  // hide flames visually
+  const flames = document.querySelectorAll('.flame');
+  flames.forEach((f, idx)=>{
+    // small puff animation
+    f.style.transition = 'transform 280ms ease, opacity 280ms ease';
+    f.style.transform = 'scale(0.2) translateY(-6px)';
+    f.style.opacity = '0';
+  });
+  blowBtn.disabled = true;
+
+  // spawn flowers & fireworks & show text
+  setTimeout(()=>{
+    spawnFlowers(36);
+    fireworksShow();
+    hbText.style.display = 'block';
+    hbText.style.opacity = 0;
+    hbText.style.transform = 'translateY(6px)';
+    hbText.style.transition = 'opacity 600ms ease, transform 600ms ease';
+    setTimeout(()=> { hbText.style.opacity = 1; hbText.style.transform = 'translateY(0)'; }, 40);
+  }, 420);
+
+  // final message reveal (typing-like)
+  setTimeout(()=> revealMessage(), 1600);
+}
+
+/* reveal message with simple typing effect */
+function revealMessage(){
+  const finalText = 'many many more happy returns of the day,wishing the best for u always... with Losts of Love Siddiq';
+  message.style.display = 'block';
+  message.textContent = '';
+  let i = 0;
+  const t = setInterval(()=>{
+    if(i < finalText.length){
+      message.textContent += finalText[i++];
+    } else {
+      clearInterval(t);
+      // flourish: little fireworks after message
+      setTimeout(()=> { fireworksShow(); spawnFlowers(18); }, 500);
+    }
+  }, 40);
+}
+
+/* ====== Event wiring ====== */
+startBtn.addEventListener('click', ()=>{
+  startAutoOpening();
+  playMusicSafe();
+  startBtn.style.display = "none";   // hides the button
+});
+
+blowBtn.addEventListener('click', ()=> {
+  blowCandlesSequence();
+  blowBtn.style.display = "none";   // hides the button
+});
+
+/* also allow tapping cake itself to blow (optional) */
+document.getElementById('cake').addEventListener('click', ()=> {
+  // show blow button if not visible
+  if(blowBtn.style.display === 'none'){
+    blowBtn.style.display = 'inline-block';
+  } else {
+    blowCandlesSequence();
+  }
+});
+
+/* allow fireworks on double-click canvas area for fun (hidden easter egg) */
+document.getElementById('card').addEventListener('dblclick', (ev)=>{
+  spawnFirework(ev.clientX, ev.clientY);
+});
+
+/* ensure music resumes on first user gesture if autoplay blocked */
+window.addEventListener('pointerdown', playMusicSafe, {once:true});
+window.addEventListener('keydown', playMusicSafe, {once:true});
+</script>
+</body>
+</html>
